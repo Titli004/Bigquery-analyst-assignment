@@ -1,33 +1,16 @@
-#q1(c) Repeat Purchase gap
-
-WITH ordered_purchases AS (
+# Q1(c) Time To First Purchase
+WITH player_conversion AS (
   SELECT
     device_id,
-    event_ts AS purchase_timestamp,
-    LAG(event_ts) OVER (
-      PARTITION BY device_id
-      ORDER BY event_ts ASC
-    ) AS prev_purchase_timestamp
-  FROM `db.purchase`
-),
-
-purchase_gaps AS (
-  SELECT
-    device_id,
-    prev_purchase_timestamp,
-    TIMESTAMP_DIFF(
-      purchase_timestamp,
-      prev_purchase_timestamp,
-      HOUR
-    ) AS hours_to_next_purchase
-  FROM ordered_purchases
-  WHERE prev_purchase_timestamp IS NOT NULL
+    install_date,
+    first_purchase_date,
+    DATE_DIFF(first_purchase_date, install_date, DAY) AS days_to_purchase,
+    CASE
+      WHEN first_purchase_date IS NOT NULL THEN 1
+      ELSE 0
+    END AS ever_paid
+  FROM `db.player_profile`
 )
 
--- Summary statistics or raw distribution of the purchase gap
-SELECT
-  ROUND(AVG(hours_to_next_purchase), 2) AS avg_hours_between_purchases,
-  APPROX_QUANTILES(
-    hours_to_next_purchase, 2
-  )[OFFSET(1)] AS median_hours_between_purchases
-FROM purchase_gaps;
+SELECT *
+FROM player_conversion;
